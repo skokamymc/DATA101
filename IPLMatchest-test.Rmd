@@ -1,0 +1,147 @@
+---
+title: "IPLMatchest-test - project 3"
+author: "SKoka"
+date: "6/24/2019"
+output: html_document
+---
+
+Introduction: 
+
+  IPL - The Indian Premier League (IPL) is a professional Twenty20 cricket league in India contested
+  during March or April and May of every year by eight teams representing eight different cities in India.
+  In project 1, we implemented data cleaning process of the IPL data set which picked up from the kaggle website
+  In project2, we will implementing the statistical inference of the IPL dataset byy using the 
+  ggplot - geom_bar(), geom_dotplot() and geom_point().
+  Performed t-test where the p values is very less, reject the null hypothesis
+  Below we will be covering,
+  1. Number of times each team won the toss
+  2. Number of games played in each city
+  3. Number of games won by each team
+  4. Percentage of each teams winning
+  5. Each teams won by runs for all the games
+
+
+```{r}
+matches <- read.csv("matches.csv")
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+```
+# GGPlots
+## 1. Number of times each team won the toss
+### Prepare the data - filter na toss win games
+```{r}
+nonNullTWMatches <- matches[which(!is.na(matches$toss_winner)),]
+
+```
+
+```{r}
+
+ggplot(nonNullTWMatches,aes(toss_winner,fill= toss_winner)) +geom_bar() + theme(axis.text.x = element_text(angle = 90))+ ylab("# of Games")
+
+```
+## Number of games played in each city
+### Prepare the data - filter na city games
+```{r}
+nonNullCityMatches <- matches[which(!is.na(matches$city)),]
+```
+
+```{r}
+ggplot(nonNullCityMatches,aes(city,fill= city)) +geom_dotplot() + theme(axis.text.x = element_text(angle = 90))+ ylab("# of Games")
+
+```
+
+## Count of win games
+### Prepare the data - filter na and tie result games
+```{r}
+wonMatches <- matches[matches$result=="normal",]
+
+```
+
+```{r}
+ggplot(wonMatches,aes(winner,fill= winner)) +geom_bar() + theme(axis.text.x = element_text(angle = 90))+ ylab("# of Games")
+
+
+```
+## ggplot of winning percentage
+### Prepare the data - collect the number matches as team 1
+
+```{r}
+asT1<- table(matches$team1)
+```
+### Prepare the data - collect the number matches as team 2
+```{r}
+asT2<- table(matches$team2)
+```
+# Summ of team1 and team2
+
+```{r}
+consolidatedT <- asT1 + asT2
+```
+
+### Prepare the data - collect the number matches won by each team
+```{r}
+wonCount <- table(wonMatches$winner)
+```
+
+## Convert into Data frame
+```{r}
+matches$winner[matches$winner==""] <- NA
+resultG <- matches[which(!is.na(matches$winner)),]
+wgames <- matches[matches$result=="normal",]
+w <- table(wgames$winner)
+gamesW <- data.frame(w)
+gamesW$Var1[gamesW$Var1 == ""] <-NA
+resultCountFinal <- gamesW[which(!is.na(gamesW$Var1)),]
+resultCountFinal
+resultDF <- data.frame(resultCountFinal)
+colnames(resultDF)[1]<-"Team Name"
+colnames(resultDF)[2]<-"NumberOfGamesWon"
+resultDF
+
+
+```
+```{r}
+gamesDF <- data.frame(consolidatedT)
+colnames(gamesDF)[1]<-"Team Name"
+colnames(gamesDF)[2]<-"NumberOfGames"
+gamesDF
+```
+### ggplot of number of games won percentage over number of games played
+
+```{r}
+ggplot(left_join(gamesDF,resultDF ),aes(resultDF$`Team Name`,resultDF$NumberOfGamesWon*100/gamesDF$NumberOfGames,fill = resultDF$`Team Name`)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90))+ xlab("Team")+ ylab("Games Won %")
+```
+```{r}
+wonByRUns <- matches[matches$win_by_runs!=0,]
+wonByRUns
+```
+
+##ggplot by using geom_point, which shows each team won by runs for all the games played
+
+```{r}
+ggplot(matches[matches$win_by_runs!=0,],aes(id,win_by_runs,col= winner )) + geom_point() +
+  ylab("Won by runs ") + xlab("Runs")
+  
+```
+
+
+```{r}
+boxplot(matches$win_by_runs,matches$winner)
+```
+## independent 2-group t-test, where both are numeric parameters
+```{r}
+res <- t.test(matches$win_by_runs,matches$win_by_wickets)
+res
+```
+
+## independent 2-group t-test, where both are numeric parameters, with alternative two sided, in both the tests, the P-Value is very small, we reject the null hypothesis
+```{r}
+t.test(matches$win_by_runs,matches$win_by_wickets,paired = TRUE, alternative = "two.sided")
+
+```
